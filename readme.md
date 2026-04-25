@@ -1,5 +1,7 @@
 # AI Observability Stack — Local Mission Control
 
+> **GitHub:** https://github.com/kamdipravin4120/ai-observability
+
 A **Level 4** closed-loop AI observability system. Prometheus metrics, Grafana dashboards, Loki logs, Tempo traces, and an automated policy engine that reroutes traffic between models when latency, cost, or error thresholds are crossed — no human in the loop.
 
 ---
@@ -50,7 +52,8 @@ observability/
 │   └── policies.yml        # Declarative routing policies + model map
 │
 ├── dashboards/
-│   └── grafana-dashboard.json  # v4 — 19-panel importable dashboard
+│   ├── grafana-dashboard.json       # v4 — 19-panel AI observability dashboard
+│   └── claude-sessions-dashboard.json  # Claude Code session analytics
 │
 ├── docs/
 │   ├── PLAN.md             # Level 4 implementation plan
@@ -226,12 +229,23 @@ Provisioned to Grafana unified alerting under folder **AI Alerts**, group **AI O
 
 Custom dashboard portal at **http://localhost:8080/portal/index.html**.
 
-- Live metric cards (req/s, error %, P95, cost, tokens, switches) — color-coded good/warn/critical
-- Active model banner with current routing category
-- Routing decisions log — switch history with from/to model and reason labels
-- Quick links to Grafana, Prometheus, Loki, Tempo
-- Auto-refreshes every 5 seconds from Prometheus API
-- Retro-futuristic terminal aesthetic (Orbitron + Share Tech Mono, CRT grid, scanlines)
+"Quantum Command" aesthetic — full viewport, no page scroll, 3-column layout.
+
+**Layout:**
+- **Top bar** — 6 service health pills, live/dead indicator, realtime clock, last-updated timestamp
+- **Left sidebar** — 7-service health grid (Prometheus, Grafana, Loki, Tempo, AI App, Claude Exporter, OTel), system uptime, build version, control loop mode
+- **Center** — animated SVG orbital rings + 4 satellite dots around the active model display; 8 live metric cards (RPS, error rate, P95 latency, cost/min, tokens/s, input tok/s, output tok/s, model switches) each with a live SVG sparkline (60-point ring buffer, 5s tick)
+- **Right sidebar** — routing events timeline (from→to + reason + count); Claude Sessions panel (input/output/cache tokens, total cost, session count from `:8001`)
+- **Dashboard Hub** (bottom) — 5 cards: AI Observability (Grafana), Claude Sessions (Grafana), Metrics Explorer (Prometheus), Log Explorer (Loki via Grafana Explore), Trace Explorer (Tempo via Grafana Explore)
+
+**Design:**
+- Palette: void `#06080f` · violet `#7c6ee0` · fuchsia `#d946ef` · teal/amber/red for state
+- Fonts: `Rajdhani` (labels) + `JetBrains Mono` (values)
+- SVG sparklines built via DOM API (`createElementNS`) — no innerHTML with data
+- Service health via `fetch(url, {mode:'no-cors'})` — resolves = up, rejects = down
+- Loki/Tempo hub links route to Grafana Explore (those services have no web UI at root)
+
+**Auto-refreshes:** metrics every 5s · Claude sessions every 30s · service health every 15s
 
 **Opens automatically on laptop login** via `~/.config/autostart/observability-portal.desktop`:
 - 12-second autostart delay (lets Docker services come up first)
@@ -239,7 +253,7 @@ Custom dashboard portal at **http://localhost:8080/portal/index.html**.
 - Starts HTTP server on port 8080 if not already running
 - Opens in Brave browser (`/usr/bin/brave-browser`)
 
-To test without rebooting:
+To start manually:
 ```bash
 bash scripts/start-portal.sh
 ```
