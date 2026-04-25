@@ -1,0 +1,70 @@
+services:
+
+  prometheus:
+    image: prom/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.cors.origin=.*'
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    restart: always
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3007:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=10T$dreams
+    volumes:
+      - grafana_data:/var/lib/grafana
+    restart: always
+
+  node_exporter:
+    image: prom/node-exporter
+    ports:
+      - "9100:9100"
+    restart: always
+
+  loki:
+    image: grafana/loki
+    ports:
+      - "3100:3100"
+    restart: always
+
+  promtail:
+    image: grafana/promtail
+    volumes:
+      - /var/log:/var/log
+      - ./config/promtail-config.yml:/etc/promtail/config.yml
+      - ./logs:/app/logs
+    command: -config.file=/etc/promtail/config.yml
+    restart: always
+
+  tempo:
+    image: grafana/tempo
+    command: [ "-config.file=/etc/tempo.yml" ]
+    volumes:
+      - ./config/tempo.yml:/etc/tempo.yml
+    ports:
+      - "3200:3200"
+    restart: always
+
+  otel-collector:
+    image: otel/opentelemetry-collector
+    command: ["--config=/etc/otel-config.yml"]
+    volumes:
+      - ./config/otel-config.yml:/etc/otel-config.yml
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    depends_on:
+      - tempo
+    restart: always
+
+volumes:
+  grafana_data:
+  prometheus_data:

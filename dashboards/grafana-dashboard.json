@@ -1,0 +1,310 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    },
+    {
+      "name": "DS_LOKI",
+      "label": "Loki",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "loki",
+      "pluginName": "Loki"
+    }
+  ],
+  "__requires": [
+    { "type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0" },
+    { "type": "datasource", "id": "loki",       "name": "Loki",       "version": "1.0.0" }
+  ],
+  "uid": "ai-observability-v4",
+  "title": "AI Observability",
+  "tags": ["ai", "observability", "claude", "codex", "control-loop"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-1h", "to": "now" },
+  "graphTooltip": 1,
+  "templating": {
+    "list": [
+      {
+        "name": "provider",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "query": { "query": "label_values(ai_requests_total, provider)", "refId": "StandardVariableQuery" },
+        "label": "Provider", "multi": true, "includeAll": true, "allValue": ".*", "hide": 0, "refresh": 2, "sort": 1
+      },
+      {
+        "name": "model",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "query": { "query": "label_values(ai_requests_total{provider=~\"$provider\"}, model)", "refId": "StandardVariableQuery" },
+        "label": "Model", "multi": true, "includeAll": true, "allValue": ".*", "hide": 0, "refresh": 2, "sort": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "REQUESTS / SEC",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 5 }, "transparent": true,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [{ "refId": "A", "expr": "sum(rate(ai_requests_total{provider=~\"$provider\", model=~\"$model\"}[1m]))", "legendFormat": "" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area", "textMode": "value_and_name" },
+      "fieldConfig": { "defaults": { "decimals": 2, "unit": "reqps", "displayName": "req/s", "color": { "mode": "fixed", "fixedColor": "#00d4ff" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "#00d4ff", "value": null }] } } }
+    },
+    {
+      "id": 2, "type": "gauge", "title": "ERROR RATE",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 5 }, "transparent": true,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [{ "refId": "A", "expr": "sum(rate(ai_errors_total{provider=~\"$provider\", model=~\"$model\"}[1m])) / sum(rate(ai_requests_total{provider=~\"$provider\", model=~\"$model\"}[1m]))", "legendFormat": "" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "showThresholdLabels": false, "showThresholdMarkers": true },
+      "fieldConfig": { "defaults": { "decimals": 1, "unit": "percentunit", "min": 0, "max": 0.5, "color": { "mode": "thresholds" },
+        "thresholds": { "mode": "absolute", "steps": [{ "color": "#00ff9f", "value": null }, { "color": "#ff9f00", "value": 0.01 }, { "color": "#ff3060", "value": 0.03 }] } } }
+    },
+    {
+      "id": 3, "type": "stat", "title": "COST / MIN (USD)",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 5 }, "transparent": true,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [{ "refId": "A", "expr": "sum(rate(ai_cost_usd_total{provider=~\"$provider\", model=~\"$model\"}[1m])) * 60", "legendFormat": "" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area", "textMode": "value_and_name" },
+      "fieldConfig": { "defaults": { "decimals": 5, "unit": "currencyUSD", "displayName": "$/min", "color": { "mode": "fixed", "fixedColor": "#ff6ad5" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "#ff6ad5", "value": null }] } } }
+    },
+    {
+      "id": 4, "type": "gauge", "title": "P95 LATENCY",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 5 }, "transparent": true,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [{ "refId": "A", "expr": "histogram_quantile(0.95, sum by (le) (rate(ai_latency_seconds_bucket{provider=~\"$provider\", model=~\"$model\"}[5m])))", "legendFormat": "" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "showThresholdLabels": false, "showThresholdMarkers": true },
+      "fieldConfig": { "defaults": { "decimals": 2, "unit": "s", "min": 0, "max": 5, "color": { "mode": "thresholds" },
+        "thresholds": { "mode": "absolute", "steps": [{ "color": "#00d4ff", "value": null }, { "color": "#ff9f00", "value": 1.5 }, { "color": "#ff3060", "value": 2.0 }] } } }
+    },
+    {
+      "id": 5, "type": "timeseries", "title": "REQUESTS / SEC — by Model",
+      "gridPos": { "x": 0, "y": 5, "w": 12, "h": 8 }, "transparent": true,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [{ "refId": "A", "expr": "rate(ai_requests_total{provider=~\"$provider\", model=~\"$model\"}[1m])", "legendFormat": "{{provider}} / {{model}}" }],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 12, "gradientMode": "opacity", "lineInterpolation": "smooth", "showPoints": "never", "spanNulls": false } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "anthropic / claude-sonnet-4-6" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#00d4ff" } }] },
+          { "matcher": { "id": "byName", "options": "anthropic / claude-haiku-4-5" },  "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#00ff9f" } }] },
+          { "matcher": { "id": "byName", "options": "openai / gpt-4o" },               "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#ff6ad5" } }] },
+          { "matcher": { "id": "byName", "options": "openai / codex-mini-latest" },    "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#ad8cff" } }] }
+        ]
+      },
+      "options": { "tooltip": { "mode": "multi", "sort": "desc" }, "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "last", "max"] } }
+    },
+    {
+      "id": 6, "type": "timeseries", "title": "ERROR RATE — by Model",
+      "gridPos": { "x": 12, "y": 5, "w": 12, "h": 8 }, "transparent": true,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [{ "refId": "A", "expr": "rate(ai_errors_total{provider=~\"$provider\", model=~\"$model\"}[1m]) / rate(ai_requests_total{provider=~\"$provider\", model=~\"$model\"}[1m])", "legendFormat": "{{provider}} / {{model}}" }],
+      "fieldConfig": {
+        "defaults": { "unit": "percentunit",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "transparent", "value": null }, { "color": "rgba(255,159,0,0.15)", "value": 0.01 }, { "color": "rgba(255,48,96,0.2)", "value": 0.03 }] },
+          "custom": { "lineWidth": 2, "fillOpacity": 12, "gradientMode": "opacity", "lineInterpolation": "smooth", "showPoints": "never", "thresholdsStyle": { "mode": "area" } }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "anthropic / claude-sonnet-4-6" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#00d4ff" } }] },
+          { "matcher": { "id": "byName", "options": "anthropic / claude-haiku-4-5" },  "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#00ff9f" } }] },
+          { "matcher": { "id": "byName", "options": "openai / gpt-4o" },               "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#ff6ad5" } }] },
+          { "matcher": { "id": "byName", "options": "openai / codex-mini-latest" },    "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#ad8cff" } }] }
+        ]
+      },
+      "options": { "tooltip": { "mode": "multi", "sort": "desc" }, "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "last", "max"] } }
+    },
+    {
+      "id": 7, "type": "timeseries", "title": "LATENCY P95 + P50 — by Model",
+      "gridPos": { "x": 0, "y": 13, "w": 12, "h": 8 }, "transparent": true,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        { "refId": "A", "expr": "histogram_quantile(0.95, sum by (le, provider, model) (rate(ai_latency_seconds_bucket{provider=~\"$provider\", model=~\"$model\"}[5m])))", "legendFormat": "P95 {{provider}} / {{model}}" },
+        { "refId": "B", "expr": "histogram_quantile(0.50, sum by (le, provider, model) (rate(ai_latency_seconds_bucket{provider=~\"$provider\", model=~\"$model\"}[5m])))", "legendFormat": "P50 {{provider}} / {{model}}" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "transparent", "value": null }, { "color": "rgba(255,159,0,0.15)", "value": 1.5 }, { "color": "rgba(255,48,96,0.2)", "value": 2.0 }] },
+          "custom": { "lineWidth": 2, "fillOpacity": 8, "gradientMode": "opacity", "lineInterpolation": "smooth", "showPoints": "never", "thresholdsStyle": { "mode": "area" } }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "P95 anthropic / claude-sonnet-4-6" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#00d4ff" } }] },
+          { "matcher": { "id": "byName", "options": "P95 anthropic / claude-haiku-4-5" },  "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#00ff9f" } }] },
+          { "matcher": { "id": "byName", "options": "P95 openai / gpt-4o" },               "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#ff6ad5" } }] },
+          { "matcher": { "id": "byName", "options": "P95 openai / codex-mini-latest" },    "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#ad8cff" } }] },
+          { "matcher": { "id": "byName", "options": "P50 anthropic / claude-sonnet-4-6" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#00d4ff" } }, { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [4, 4] } }] },
+          { "matcher": { "id": "byName", "options": "P50 anthropic / claude-haiku-4-5" },  "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#00ff9f" } }, { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [4, 4] } }] },
+          { "matcher": { "id": "byName", "options": "P50 openai / gpt-4o" },               "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#ff6ad5" } }, { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [4, 4] } }] },
+          { "matcher": { "id": "byName", "options": "P50 openai / codex-mini-latest" },    "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#ad8cff" } }, { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [4, 4] } }] }
+        ]
+      },
+      "options": { "tooltip": { "mode": "multi", "sort": "desc" }, "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "last", "max"] } }
+    },
+    {
+      "id": 8, "type": "timeseries", "title": "AVG LATENCY — by Model",
+      "gridPos": { "x": 12, "y": 13, "w": 12, "h": 8 }, "transparent": true,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [{ "refId": "A", "expr": "rate(ai_latency_seconds_sum{provider=~\"$provider\", model=~\"$model\"}[1m]) / rate(ai_latency_seconds_count{provider=~\"$provider\", model=~\"$model\"}[1m])", "legendFormat": "{{provider}} / {{model}}" }],
+      "fieldConfig": {
+        "defaults": { "unit": "s",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "transparent", "value": null }, { "color": "rgba(255,159,0,0.15)", "value": 1.5 }, { "color": "rgba(255,48,96,0.2)", "value": 2.0 }] },
+          "custom": { "lineWidth": 2, "fillOpacity": 8, "gradientMode": "opacity", "lineInterpolation": "smooth", "showPoints": "never", "thresholdsStyle": { "mode": "area" } }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "anthropic / claude-sonnet-4-6" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#00d4ff" } }] },
+          { "matcher": { "id": "byName", "options": "anthropic / claude-haiku-4-5" },  "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#00ff9f" } }] },
+          { "matcher": { "id": "byName", "options": "openai / gpt-4o" },               "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#ff6ad5" } }] },
+          { "matcher": { "id": "byName", "options": "openai / codex-mini-latest" },    "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#ad8cff" } }] }
+        ]
+      },
+      "options": { "tooltip": { "mode": "multi", "sort": "desc" }, "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "last", "max"] } }
+    },
+    {
+      "id": 9, "type": "timeseries", "title": "INPUT TOKENS / SEC — by Model",
+      "gridPos": { "x": 0, "y": 21, "w": 12, "h": 8 }, "transparent": true,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [{ "refId": "A", "expr": "rate(ai_tokens_input_total{provider=~\"$provider\", model=~\"$model\"}[1m])", "legendFormat": "{{provider}} / {{model}}" }],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 15, "gradientMode": "opacity", "lineInterpolation": "smooth", "showPoints": "never" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "anthropic / claude-sonnet-4-6" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#00d4ff" } }] },
+          { "matcher": { "id": "byName", "options": "anthropic / claude-haiku-4-5" },  "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#00ff9f" } }] },
+          { "matcher": { "id": "byName", "options": "openai / gpt-4o" },               "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#ff6ad5" } }] },
+          { "matcher": { "id": "byName", "options": "openai / codex-mini-latest" },    "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#ad8cff" } }] }
+        ]
+      },
+      "options": { "tooltip": { "mode": "multi", "sort": "desc" }, "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "last", "max"] } }
+    },
+    {
+      "id": 10, "type": "timeseries", "title": "OUTPUT TOKENS / SEC — by Model",
+      "gridPos": { "x": 12, "y": 21, "w": 12, "h": 8 }, "transparent": true,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [{ "refId": "A", "expr": "rate(ai_tokens_output_total{provider=~\"$provider\", model=~\"$model\"}[1m])", "legendFormat": "{{provider}} / {{model}}" }],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 15, "gradientMode": "opacity", "lineInterpolation": "smooth", "showPoints": "never" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "anthropic / claude-sonnet-4-6" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#00d4ff" } }] },
+          { "matcher": { "id": "byName", "options": "anthropic / claude-haiku-4-5" },  "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#00ff9f" } }] },
+          { "matcher": { "id": "byName", "options": "openai / gpt-4o" },               "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#ff6ad5" } }] },
+          { "matcher": { "id": "byName", "options": "openai / codex-mini-latest" },    "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#ad8cff" } }] }
+        ]
+      },
+      "options": { "tooltip": { "mode": "multi", "sort": "desc" }, "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "last", "max"] } }
+    },
+    {
+      "id": 11, "type": "timeseries", "title": "COST / MIN — by Model (USD)",
+      "gridPos": { "x": 0, "y": 29, "w": 12, "h": 8 }, "transparent": true,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [{ "refId": "A", "expr": "rate(ai_cost_usd_total{provider=~\"$provider\", model=~\"$model\"}[1m]) * 60", "legendFormat": "{{provider}} / {{model}}" }],
+      "fieldConfig": {
+        "defaults": { "unit": "currencyUSD", "decimals": 5, "custom": { "lineWidth": 2, "fillOpacity": 15, "gradientMode": "opacity", "lineInterpolation": "smooth", "showPoints": "never" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "anthropic / claude-sonnet-4-6" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#00d4ff" } }] },
+          { "matcher": { "id": "byName", "options": "anthropic / claude-haiku-4-5" },  "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#00ff9f" } }] },
+          { "matcher": { "id": "byName", "options": "openai / gpt-4o" },               "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#ff6ad5" } }] },
+          { "matcher": { "id": "byName", "options": "openai / codex-mini-latest" },    "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#ad8cff" } }] }
+        ]
+      },
+      "options": { "tooltip": { "mode": "multi", "sort": "desc" }, "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "last", "max"] } }
+    },
+    {
+      "id": 12, "type": "bargauge", "title": "TOTAL COST — last 1h by Model (USD)",
+      "gridPos": { "x": 12, "y": 29, "w": 12, "h": 8 }, "transparent": true,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [{ "refId": "A", "expr": "sum by (provider, model) (increase(ai_cost_usd_total{provider=~\"$provider\", model=~\"$model\"}[1h]))", "legendFormat": "{{provider}} / {{model}}" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "horizontal", "displayMode": "lcd", "valueMode": "color" },
+      "fieldConfig": {
+        "defaults": { "unit": "currencyUSD", "decimals": 5, "color": { "mode": "palette-classic" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "#00d4ff", "value": null }, { "color": "#ff3060", "value": 0.5 }] }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "anthropic / claude-sonnet-4-6" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#00d4ff" } }] },
+          { "matcher": { "id": "byName", "options": "anthropic / claude-haiku-4-5" },  "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#00ff9f" } }] },
+          { "matcher": { "id": "byName", "options": "openai / gpt-4o" },               "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#ff6ad5" } }] },
+          { "matcher": { "id": "byName", "options": "openai / codex-mini-latest" },    "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#ad8cff" } }] }
+        ]
+      }
+    },
+    {
+      "id": 13, "type": "timeseries", "title": "COST / MIN — by Provider (USD)",
+      "gridPos": { "x": 0, "y": 37, "w": 12, "h": 8 }, "transparent": true,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [{ "refId": "A", "expr": "sum by (provider) (rate(ai_cost_usd_total{provider=~\"$provider\", model=~\"$model\"}[1m])) * 60", "legendFormat": "{{provider}}" }],
+      "fieldConfig": {
+        "defaults": { "unit": "currencyUSD", "decimals": 5, "custom": { "lineWidth": 3, "fillOpacity": 20, "gradientMode": "opacity", "lineInterpolation": "smooth", "showPoints": "never" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "anthropic" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#00d4ff" } }] },
+          { "matcher": { "id": "byName", "options": "openai" },    "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#ff6ad5" } }] }
+        ]
+      },
+      "options": { "tooltip": { "mode": "multi", "sort": "desc" }, "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "last", "max"] } }
+    },
+    {
+      "id": 14, "type": "timeseries", "title": "TOTAL TOKENS / SEC — by Provider",
+      "gridPos": { "x": 12, "y": 37, "w": 12, "h": 8 }, "transparent": true,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [{ "refId": "A", "expr": "sum by (provider) (rate(ai_tokens_input_total{provider=~\"$provider\", model=~\"$model\"}[1m]) + rate(ai_tokens_output_total{provider=~\"$provider\", model=~\"$model\"}[1m]))", "legendFormat": "{{provider}}" }],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineWidth": 3, "fillOpacity": 20, "gradientMode": "opacity", "lineInterpolation": "smooth", "showPoints": "never" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "anthropic" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#00d4ff" } }] },
+          { "matcher": { "id": "byName", "options": "openai" },    "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#ff6ad5" } }] }
+        ]
+      },
+      "options": { "tooltip": { "mode": "multi", "sort": "desc" }, "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "last", "max"] } }
+    },
+
+    {
+      "id": 15, "type": "stat", "title": "ACTIVE MODEL",
+      "gridPos": { "x": 0, "y": 45, "w": 6, "h": 5 }, "transparent": true,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [{ "refId": "A", "expr": "topk(1, ai_active_model == 1)", "legendFormat": "{{model}}" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "textMode": "value_and_name" },
+      "fieldConfig": { "defaults": { "unit": "none", "color": { "mode": "fixed", "fixedColor": "#00d4ff" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "#00d4ff", "value": null }] } } }
+    },
+    {
+      "id": 16, "type": "timeseries", "title": "MODEL SWITCHES / HR — by Reason",
+      "gridPos": { "x": 6, "y": 45, "w": 6, "h": 5 }, "transparent": true,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [{ "refId": "A", "expr": "rate(ai_model_switches_total[5m]) * 3600", "legendFormat": "{{reason}}" }],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 15, "gradientMode": "opacity", "lineInterpolation": "smooth", "showPoints": "never" } }
+      },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+    {
+      "id": 17, "type": "timeseries", "title": "COST PER REQUEST — by Model (USD)",
+      "gridPos": { "x": 12, "y": 45, "w": 12, "h": 5 }, "transparent": true,
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [{ "refId": "A", "expr": "rate(ai_cost_usd_total{provider=~\"$provider\", model=~\"$model\"}[1m]) / rate(ai_requests_total{provider=~\"$provider\", model=~\"$model\"}[1m])", "legendFormat": "{{provider}} / {{model}}" }],
+      "fieldConfig": {
+        "defaults": { "unit": "currencyUSD", "decimals": 6, "custom": { "lineWidth": 2, "fillOpacity": 10, "gradientMode": "opacity", "lineInterpolation": "smooth", "showPoints": "never" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "anthropic / claude-sonnet-4-6" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#00d4ff" } }] },
+          { "matcher": { "id": "byName", "options": "anthropic / claude-haiku-4-5" },  "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#00ff9f" } }] },
+          { "matcher": { "id": "byName", "options": "openai / gpt-4o" },               "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#ff6ad5" } }] },
+          { "matcher": { "id": "byName", "options": "openai / codex-mini-latest" },    "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#ad8cff" } }] }
+        ]
+      },
+      "options": { "tooltip": { "mode": "multi", "sort": "desc" }, "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "last"] } }
+    },
+    {
+      "id": 18, "type": "logs", "title": "DECISION TIMELINE (control loop audit)",
+      "gridPos": { "x": 0, "y": 50, "w": 12, "h": 10 }, "transparent": true,
+      "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+      "targets": [{ "refId": "A", "expr": "{job=\"ai_app\", stream=\"decisions\"}", "legendFormat": "" }],
+      "options": { "showLabels": true, "showTime": true, "wrapLogMessage": true, "enableLogDetails": true, "sortOrder": "Descending", "dedupStrategy": "none" }
+    },
+    {
+      "id": 19, "type": "logs", "title": "ERROR LOGS — failed requests",
+      "gridPos": { "x": 12, "y": 50, "w": 12, "h": 10 }, "transparent": true,
+      "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+      "targets": [{ "refId": "A", "expr": "{job=\"ai_app\", stream=\"requests\", level=\"ERROR\"}", "legendFormat": "" }],
+      "options": { "showLabels": true, "showTime": true, "wrapLogMessage": true, "enableLogDetails": true, "sortOrder": "Descending", "dedupStrategy": "none" }
+    }
+  ]
+}

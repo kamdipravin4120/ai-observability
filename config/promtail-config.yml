@@ -1,0 +1,55 @@
+server:
+  http_listen_port: 9080
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: system
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: varlogs
+          __path__: /var/log/*.log
+
+  - job_name: ai_app_requests
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: ai_app
+          stream: requests
+          __path__: /app/logs/ai_app.log
+    pipeline_stages:
+      - json:
+          expressions:
+            level: level
+            provider: provider
+            model: model
+      - labels:
+          level:
+          provider:
+          model:
+
+  - job_name: ai_app_decisions
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: ai_app
+          stream: decisions
+          __path__: /app/logs/ai_decisions.log
+    pipeline_stages:
+      - json:
+          expressions:
+            level: level
+            reason: reason
+            from_model: from_model
+            to_model: to_model
+      - labels:
+          level:
+          reason:

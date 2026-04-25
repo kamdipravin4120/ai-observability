@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI MISSION CONTROL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --void:  #06080f;
+  --deep:  #0b0f1c;
+  --surf:  #101526;
+  --raise: #141928;
+  --bord:  rgba(108,99,255,0.14);
+  --bord2: rgba(108,99,255,0.36);
+  --vi:    #7c6ee0;
+  --fux:   #d946ef;
+  --teal:  #22d3a4;
+  --amber: #f59e0b;
+  --red:   #ef4444;
+  --text:  #c4cde8;
+  --muted: rgba(196,205,232,0.38);
+  --dimv:  rgba(108,99,255,0.05);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body {
+  background-color:var(--void);
+  background-image:
+    radial-gradient(ellipse 70% 40% at 50% 0%,rgba(108,99,255,.09) 0%,transparent 65%),
+    linear-gradient(rgba(108,99,255,.022) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(108,99,255,.022) 1px,transparent 1px);
+  background-size:auto,52px 52px,52px 52px;
+  color:var(--text);
+  font-family:'Rajdhani',sans-serif;
+  font-weight:500;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+body::after {
+  content:'';position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.06) 3px,rgba(0,0,0,.06) 4px);
+  pointer-events:none;z-index:9999;
+}
+
+/* COMMAND BAR */
+.cmdbar {
+  height:52px;flex-shrink:0;
+  display:flex;align-items:center;gap:16px;padding:0 20px;
+  background:var(--deep);border-bottom:1px solid var(--bord);
+  position:relative;z-index:10;
+}
+.cmdbar::after {
+  content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--vi) 25%,var(--fux) 50%,var(--vi) 75%,transparent);
+  opacity:.4;
+}
+.brand{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.bhex{width:22px;height:22px;color:var(--vi);filter:drop-shadow(0 0 6px var(--vi))}
+.bname{font-size:16px;font-weight:700;letter-spacing:3px;text-transform:uppercase}
+.bname em{color:var(--vi);font-style:normal}
+.bver{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--muted);
+  padding:2px 5px;border:1px solid var(--bord);letter-spacing:1px}
+.pills{display:flex;gap:5px;flex:1;justify-content:center}
+.pill{display:flex;align-items:center;gap:5px;padding:3px 9px;
+  border:1px solid var(--bord);background:var(--dimv);
+  font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:1px;
+  color:var(--muted);text-transform:uppercase;transition:all .3s}
+.pill .pd{width:5px;height:5px;border-radius:50%;background:currentColor;
+  box-shadow:0 0 4px currentColor;flex-shrink:0}
+.pill.up{border-color:rgba(34,211,164,.28);color:var(--teal)}
+.pill.dn{border-color:rgba(239,68,68,.35);color:var(--red)}
+.cbarr{display:flex;align-items:center;gap:14px;flex-shrink:0}
+.liveb{display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:2px;font-weight:600}
+.ldot{width:7px;height:7px;border-radius:50%;background:var(--teal);
+  box-shadow:0 0 8px var(--teal);animation:ld 2s ease-in-out infinite}
+.ldot.dead{background:var(--red);box-shadow:0 0 8px var(--red);animation:none}
+@keyframes ld{0%,100%{opacity:1;box-shadow:0 0 8px var(--teal)}50%{opacity:.4;box-shadow:0 0 3px var(--teal)}}
+.cclock{font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:1px;min-width:76px;text-align:right}
+.cupd{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:1px;min-width:128px}
+
+/* MAIN */
+.main{flex:1;min-height:0;display:grid;grid-template-columns:210px 1fr 235px;overflow:hidden}
+.main>*{overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--bord2) transparent}
+.sl{border-right:1px solid var(--bord)}
+.sr{border-left:1px solid var(--bord);display:flex;flex-direction:column}
+
+/* SIDEBAR SECTIONS */
+.sbs{padding:13px 14px;border-bottom:1px solid var(--bord)}
+.sbt{font-size:8px;letter-spacing:4px;color:var(--muted);text-transform:uppercase;
+  margin-bottom:11px;display:flex;align-items:center;gap:8px}
+.sbt::after{content:'';flex:1;height:1px;background:var(--bord)}
+.svr{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px;
+  letter-spacing:.5px;color:var(--muted);transition:color .3s}
+.svr.up{color:var(--text)}
+.svr.dn{color:rgba(239,68,68,.7)}
+.sind{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:all .3s}
+.svr.up .sind{background:var(--teal);box-shadow:0 0 6px var(--teal)}
+.svr.dn .sind{background:var(--red);box-shadow:0 0 6px var(--red)}
+.snm{flex:1;font-size:12px}
+.sport{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--muted)}
+.ssrow{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px}
+.sslbl{color:var(--muted);letter-spacing:.5px}
+.ssval{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--vi)}
+.cbdg{padding:2px 7px;border:1px solid rgba(34,211,164,.35);color:var(--teal);
+  font-size:8px;letter-spacing:2px}
+.cbdg.open{border-color:rgba(245,158,11,.35);color:var(--amber)}
+
+/* CENTER */
+.ctr{display:flex;flex-direction:column;overflow-y:auto}
+
+/* ACTIVE MODEL */
+.mhq{padding:18px 22px 14px;border-bottom:1px solid var(--bord);flex-shrink:0}
+.mhqlbl{font-size:8px;letter-spacing:4px;color:var(--muted);text-transform:uppercase;margin-bottom:14px}
+.orbwrap{position:relative;height:138px;display:flex;align-items:center;justify-content:center}
+.orbsvg{position:absolute;inset:0;width:100%;height:100%}
+.mct{position:relative;z-index:2;text-align:center}
+.mctname{font-size:clamp(16px,2.5vw,27px);font-weight:700;letter-spacing:2px;
+  color:#e2e8f8;text-shadow:0 0 22px rgba(217,70,239,.45);transition:all .4s;line-height:1.1;
+  animation:flk 10s ease-in-out infinite}
+@keyframes flk{0%,90%,95%,100%{opacity:1}92.5%{opacity:.5}}
+.mctsub{display:flex;align-items:center;gap:10px;justify-content:center;margin-top:5px}
+.mctprov{font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase}
+.mctcat{padding:2px 8px;border:1px solid rgba(217,70,239,.38);color:var(--fux);
+  font-size:8px;letter-spacing:2px;text-transform:uppercase}
+
+/* METRICS */
+.mwrap{padding:14px;display:grid;grid-template-columns:repeat(4,1fr);gap:9px;
+  flex-shrink:0;border-bottom:1px solid var(--bord)}
+.mc{background:var(--raise);border:1px solid var(--bord);padding:11px 13px 8px;
+  position:relative;overflow:hidden;transition:border-color .3s,box-shadow .3s}
+.mc::before{content:'';position:absolute;top:0;left:0;width:9px;height:9px;
+  border-top:1px solid var(--vi);border-left:1px solid var(--vi);transition:border-color .3s}
+.mc::after{content:'';position:absolute;bottom:0;right:0;width:9px;height:9px;
+  border-bottom:1px solid var(--vi);border-right:1px solid var(--vi);transition:border-color .3s}
+.mc:hover{border-color:var(--bord2);box-shadow:0 0 18px rgba(124,110,224,.07)}
+.mc.sg{border-color:rgba(34,211,164,.3);background:rgba(34,211,164,.025)}
+.mc.sg::before,.mc.sg::after{border-color:var(--teal)}
+.mc.sw{border-color:rgba(245,158,11,.36);background:rgba(245,158,11,.025)}
+.mc.sw::before,.mc.sw::after{border-color:var(--amber)}
+.mc.sc{border-color:rgba(239,68,68,.38);background:rgba(239,68,68,.03)}
+.mc.sc::before,.mc.sc::after{border-color:var(--red)}
+.mclbl{font-size:8px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:7px}
+.mcval{font-family:'JetBrains Mono',monospace;font-size:clamp(15px,1.7vw,21px);font-weight:700;
+  color:var(--vi);line-height:1;margin-bottom:2px;transition:color .3s,text-shadow .3s}
+.mc.sg .mcval{color:var(--teal);text-shadow:0 0 10px rgba(34,211,164,.32)}
+.mc.sw .mcval{color:var(--amber);text-shadow:0 0 10px rgba(245,158,11,.32)}
+.mc.sc .mcval{color:var(--red);text-shadow:0 0 10px rgba(239,68,68,.32)}
+.mcunit{font-size:8px;color:var(--muted);letter-spacing:.5px;margin-bottom:7px}
+.mcthr{position:absolute;top:9px;right:11px;font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--muted)}
+.mcsp{width:100%;height:26px;display:block;overflow:visible}
+
+/* RIGHT SIDEBAR */
+.rls{flex:1;min-height:0;display:flex;flex-direction:column;border-bottom:1px solid var(--bord);
+  padding:13px 14px}
+.rlistwrap{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--bord) transparent}
+.remp{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px}
+.ritem{padding:10px 0 10px 15px;border-bottom:1px solid var(--bord);position:relative}
+.ritem::before{content:'';position:absolute;left:0;top:15px;width:6px;height:6px;
+  border-radius:50%;background:var(--vi);box-shadow:0 0 7px var(--vi)}
+.rarr{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;
+  font-size:10px;margin-bottom:4px}
+.rfrom{color:var(--muted);text-decoration:line-through;font-size:9px}
+.rchev{color:var(--vi)}
+.rto{color:var(--teal);font-weight:700}
+.rmeta{display:flex;align-items:center;gap:6px}
+.rreason{padding:1px 6px;border:1px solid rgba(245,158,11,.36);color:var(--amber);
+  font-size:7px;letter-spacing:1px;text-transform:uppercase}
+.rcount{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-left:auto}
+.css-sec{flex-shrink:0}
+.csrow{display:flex;justify-content:space-between;align-items:baseline;
+  padding:5px 0;border-bottom:1px solid var(--bord);font-size:12px}
+.csrow:last-child{border-bottom:none}
+.cslbl{color:var(--muted);letter-spacing:.5px;font-size:11px}
+.csval{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--vi);font-weight:700}
+.csval.hi{color:var(--fux)}
+
+/* HUB */
+.hub{flex-shrink:0;border-top:1px solid var(--bord);background:var(--deep);padding:12px 18px}
+.hubtitle{font-size:8px;letter-spacing:4px;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
+.hubgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:8px}
+.dc{display:flex;flex-direction:column;gap:5px;padding:11px 13px;
+  border:1px solid var(--bord);background:var(--surf);text-decoration:none;
+  color:var(--text);position:relative;overflow:hidden;transition:all .22s}
+.dc::before{content:'';position:absolute;top:0;left:0;width:3px;bottom:0;
+  background:var(--vi);opacity:.5;transition:all .22s}
+.dc:hover{border-color:var(--bord2);box-shadow:0 0 22px rgba(124,110,224,.1);transform:translateY(-1px)}
+.dc:hover::before{opacity:1}
+.dctype{font-size:7px;letter-spacing:3px;color:var(--muted);text-transform:uppercase}
+.dcname{font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+.dcdesc{font-size:9px;color:var(--muted);line-height:1.4}
+.dcarr{position:absolute;right:11px;top:11px;font-size:11px;color:var(--muted);transition:all .2s}
+.dc:hover .dcarr{color:var(--vi);transform:translate(2px,-2px)}
+.dc.g::before{background:var(--fux)}
+.dc.p::before{background:var(--amber)}
+.dc.l::before{background:var(--teal)}
+.dc.t::before{background:#60a5fa}
+
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bord2);border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- COMMAND BAR -->
+<div class="cmdbar">
+  <div class="brand">
+    <svg class="bhex" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <polygon points="12,2 22,8.5 22,15.5 12,22 2,15.5 2,8.5"/>
+      <circle cx="12" cy="12" r="2.5"/>
+    </svg>
+    <span class="bname">AI <em>MISSION</em> CONTROL</span>
+    <span class="bver">v4.0</span>
+  </div>
+  <div class="pills">
+    <div class="pill" id="pl-prom"><span class="pd"></span>PROMETHEUS</div>
+    <div class="pill" id="pl-graf"><span class="pd"></span>GRAFANA</div>
+    <div class="pill" id="pl-loki"><span class="pd"></span>LOKI</div>
+    <div class="pill" id="pl-tempo"><span class="pd"></span>TEMPO</div>
+    <div class="pill" id="pl-app"><span class="pd"></span>AI APP</div>
+    <div class="pill" id="pl-exp"><span class="pd"></span>CLAUDE EXP</div>
+  </div>
+  <div class="cbarr">
+    <div class="liveb"><div class="ldot" id="ldot"></div><span id="ltxt">LIVE</span></div>
+    <div class="cclock" id="cclock">--:--:--</div>
+    <div class="cupd" id="cupd">CONNECTING…</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT -->
+  <aside class="sl">
+    <div class="sbs">
+      <div class="sbt">Infrastructure</div>
+      <div class="svr" id="sv-prom"><span class="sind"></span><span class="snm">Prometheus</span><span class="sport">:9090</span></div>
+      <div class="svr" id="sv-graf"><span class="sind"></span><span class="snm">Grafana</span><span class="sport">:3007</span></div>
+      <div class="svr" id="sv-loki"><span class="sind"></span><span class="snm">Loki</span><span class="sport">:3100</span></div>
+      <div class="svr" id="sv-tempo"><span class="sind"></span><span class="snm">Tempo</span><span class="sport">:3200</span></div>
+      <div class="svr" id="sv-app"><span class="sind"></span><span class="snm">AI App</span><span class="sport">:8000</span></div>
+      <div class="svr" id="sv-exp"><span class="sind"></span><span class="snm">Claude Exporter</span><span class="sport">:8001</span></div>
+      <div class="svr" id="sv-otel"><span class="sind"></span><span class="snm">OTel Collector</span><span class="sport">:4317</span></div>
+    </div>
+    <div class="sbs">
+      <div class="sbt">System</div>
+      <div class="ssrow"><span class="sslbl">UPTIME</span><span class="ssval" id="sys-up">—</span></div>
+      <div class="ssrow"><span class="sslbl">REFRESH</span><span class="ssval">5 s</span></div>
+      <div class="ssrow"><span class="sslbl">CTRL LOOP</span><span class="cbdg" id="ctrl-bdg">CLOSED</span></div>
+      <div class="ssrow"><span class="sslbl">BUILD</span><span class="ssval">v4.0.0</span></div>
+    </div>
+  </aside>
+
+  <!-- CENTER -->
+  <div class="ctr">
+    <div class="mhq">
+      <div class="mhqlbl">Active Model · Auto-Routing Target</div>
+      <div class="orbwrap">
+        <svg class="orbsvg" viewBox="0 0 600 138" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <filter id="gv">
+              <feGaussianBlur stdDeviation="2.5" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <filter id="gf">
+              <feGaussianBlur stdDeviation="3.5" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <ellipse id="o1" cx="300" cy="69" rx="285" ry="54"
+            fill="none" stroke="rgba(124,110,224,0.13)" stroke-width="1" stroke-dasharray="5 14"/>
+          <ellipse id="o2" cx="300" cy="69" rx="218" ry="40"
+            fill="none" stroke="rgba(217,70,239,0.11)" stroke-width="1" stroke-dasharray="2 9"/>
+          <ellipse id="o3" cx="300" cy="69" rx="148" ry="27"
+            fill="none" stroke="rgba(34,211,164,0.18)" stroke-width="1"/>
+          <circle r="3.5" fill="rgba(124,110,224,0.95)" filter="url(#gv)">
+            <animateMotion dur="10s" repeatCount="indefinite"><mpath href="#o1"/></animateMotion>
+          </circle>
+          <circle r="2.8" fill="rgba(217,70,239,0.9)" filter="url(#gf)">
+            <animateMotion dur="7s" repeatCount="indefinite" keyPoints="1;0" keyTimes="0;1" calcMode="linear" begin="2s">
+              <mpath href="#o2"/>
+            </animateMotion>
+          </circle>
+          <circle r="2.2" fill="rgba(34,211,164,0.9)" filter="url(#gv)">
+            <animateMotion dur="4.5s" repeatCount="indefinite" begin="1s"><mpath href="#o3"/></animateMotion>
+          </circle>
+          <circle r="2" fill="rgba(124,110,224,0.4)">
+            <animateMotion dur="15s" repeatCount="indefinite" keyPoints="1;0" keyTimes="0;1" calcMode="linear" begin="5s">
+              <mpath href="#o1"/>
+            </animateMotion>
+          </circle>
+        </svg>
+        <div class="mct">
+          <div class="mctname" id="mctname">QUERYING…</div>
+          <div class="mctsub">
+            <span class="mctprov" id="mctprov">—</span>
+            <span class="mctcat" id="mctcat">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mwrap">
+      <div class="mc" id="c-rps">
+        <div class="mclbl">Requests / Sec</div>
+        <div class="mcval" id="v-rps">—</div>
+        <div class="mcunit">req · s⁻¹</div>
+        <svg class="mcsp" id="sp-rps" viewBox="0 0 120 26" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="mc" id="c-err">
+        <div class="mclbl">Error Rate</div>
+        <div class="mcthr">&gt;3% CRIT</div>
+        <div class="mcval" id="v-err">—</div>
+        <div class="mcunit">%</div>
+        <svg class="mcsp" id="sp-err" viewBox="0 0 120 26" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="mc" id="c-lat">
+        <div class="mclbl">P95 Latency</div>
+        <div class="mcthr">&gt;2s CRIT</div>
+        <div class="mcval" id="v-lat">—</div>
+        <div class="mcunit">seconds</div>
+        <svg class="mcsp" id="sp-lat" viewBox="0 0 120 26" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="mc" id="c-cost">
+        <div class="mclbl">Cost / Min</div>
+        <div class="mcthr">&gt;$0.10 CRIT</div>
+        <div class="mcval" id="v-cost">—</div>
+        <div class="mcunit">USD · min⁻¹</div>
+        <svg class="mcsp" id="sp-cost" viewBox="0 0 120 26" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="mc" id="c-tok">
+        <div class="mclbl">Tokens / Sec</div>
+        <div class="mcval" id="v-tok">—</div>
+        <div class="mcunit">tok · s⁻¹</div>
+        <svg class="mcsp" id="sp-tok" viewBox="0 0 120 26" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="mc" id="c-in">
+        <div class="mclbl">Input Tok / Sec</div>
+        <div class="mcval" id="v-in">—</div>
+        <div class="mcunit">in · s⁻¹</div>
+        <svg class="mcsp" id="sp-in" viewBox="0 0 120 26" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="mc" id="c-out">
+        <div class="mclbl">Output Tok / Sec</div>
+        <div class="mcval" id="v-out">—</div>
+        <div class="mcunit">out · s⁻¹</div>
+        <svg class="mcsp" id="sp-out" viewBox="0 0 120 26" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="mc" id="c-sw">
+        <div class="mclbl">Model Switches</div>
+        <div class="mcval" id="v-sw">—</div>
+        <div class="mcunit">total events</div>
+        <svg class="mcsp" id="sp-sw" viewBox="0 0 120 26" preserveAspectRatio="none"></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <aside class="sr">
+    <div class="rls sbt-wrap">
+      <div class="sbt" style="margin-bottom:11px">Routing Events</div>
+      <div class="rlistwrap" id="rlist">
+        <div class="remp">NO EVENTS YET</div>
+      </div>
+    </div>
+    <div class="sbs css-sec">
+      <div class="sbt">Claude Sessions</div>
+      <div class="csrow"><span class="cslbl">INPUT TOK</span><span class="csval" id="cs-in">—</span></div>
+      <div class="csrow"><span class="cslbl">OUTPUT TOK</span><span class="csval" id="cs-out">—</span></div>
+      <div class="csrow"><span class="cslbl">CACHE TOK</span><span class="csval" id="cs-cache">—</span></div>
+      <div class="csrow"><span class="cslbl">TOTAL COST</span><span class="csval hi" id="cs-cost">—</span></div>
+      <div class="csrow"><span class="cslbl">SESSIONS</span><span class="csval" id="cs-sess">—</span></div>
+    </div>
+  </aside>
+</div>
+
+<!-- HUB -->
+<div class="hub">
+  <div class="hubtitle">Dashboard Hub</div>
+  <div class="hubgrid">
+    <a class="dc g" href="http://localhost:3007/d/ai-observability-v4" target="_blank" rel="noopener">
+      <div class="dctype">Grafana</div>
+      <div class="dcname">AI Observability</div>
+      <div class="dcdesc">Metrics, errors, latency, cost, tokens by model</div>
+      <div class="dcarr">↗</div>
+    </a>
+    <a class="dc g" href="http://localhost:3007" target="_blank" rel="noopener">
+      <div class="dctype">Grafana</div>
+      <div class="dcname">Claude Sessions</div>
+      <div class="dcdesc">Token usage, cache efficiency, session analytics</div>
+      <div class="dcarr">↗</div>
+    </a>
+    <a class="dc p" href="http://localhost:9090" target="_blank" rel="noopener">
+      <div class="dctype">Prometheus</div>
+      <div class="dcname">Metrics Explorer</div>
+      <div class="dcdesc">Raw PromQL, targets, alert rules</div>
+      <div class="dcarr">↗</div>
+    </a>
+    <a class="dc l" href="http://localhost:3007/explore?orgId=1" target="_blank" rel="noopener">
+      <div class="dctype">Loki · via Grafana</div>
+      <div class="dcname">Log Explorer</div>
+      <div class="dcdesc">Structured AI app logs — select Loki in Explore</div>
+      <div class="dcarr">↗</div>
+    </a>
+    <a class="dc t" href="http://localhost:3007/explore?orgId=1" target="_blank" rel="noopener">
+      <div class="dctype">Tempo · via Grafana</div>
+      <div class="dcname">Trace Explorer</div>
+      <div class="dcdesc">OpenTelemetry traces — select Tempo in Explore</div>
+      <div class="dcarr">↗</div>
+    </a>
+  </div>
+</div>
+
+<script>
+const PROM = 'http://localhost:9090/api/v1/query';
+const EXP  = 'http://localhost:8001/metrics';
+const TICK = 5000;
+const HIST = 60;
+const NS   = 'http://www.w3.org/2000/svg';
+
+const COLORS = {
+  rps:'#7c6ee0', err:'#ef4444', lat:'#f59e0b', cost:'#d946ef',
+  tok:'#22d3a4', in:'#60a5fa', out:'#a78bfa', sw:'#fb923c'
+};
+const B = {};
+
+function push(k, v) {
+  if (!B[k]) B[k] = [];
+  B[k].push(v ?? 0);
+  if (B[k].length > HIST) B[k].shift();
+}
+
+function svgEl(tag, attrs) {
+  const el = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+
+function spark(id, key) {
+  const svg = document.getElementById(id);
+  const d = B[key];
+  if (!svg || !d || d.length < 2) return;
+  const W = 120, H = 26;
+  const mx = Math.max(...d, 1e-9);
+  const mn = Math.min(...d);
+  const rng = (mx - mn) || mx || 1e-9;
+  const pts = d.map((v, i) => [
+    ((i / (d.length - 1)) * W).toFixed(1),
+    (H - 2 - ((v - mn) / rng) * (H - 5)).toFixed(1)
+  ]);
+  const linePts = pts.map(p => p.join(',')).join(' L ');
+  const lineD = 'M ' + linePts;
+  const areaD = lineD + ` L ${W},${H} L 0,${H} Z`;
+  const c = COLORS[key];
+  const gid = 'g' + key;
+
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+  const defs = svgEl('defs', {});
+  const grad = svgEl('linearGradient', {id: gid, x1:'0', y1:'0', x2:'0', y2:'1'});
+  const s1 = svgEl('stop', {offset:'0%', 'stop-color':c, 'stop-opacity':'.3'});
+  const s2 = svgEl('stop', {offset:'100%', 'stop-color':c, 'stop-opacity':'0'});
+  grad.append(s1, s2);
+  defs.append(grad);
+
+  const area = svgEl('path', {d: areaD, fill: `url(#${gid})`});
+  const line = svgEl('path', {d: lineD, fill:'none', stroke:c,
+    'stroke-width':'1.5', 'stroke-linecap':'round', 'stroke-linejoin':'round'});
+  const last = pts[pts.length - 1];
+  const dot  = svgEl('circle', {cx: last[0], cy: last[1], r:'2', fill:c});
+
+  svg.append(defs, area, line, dot);
+}
+
+async function pq(expr) {
+  try {
+    const r = await fetch(PROM + '?query=' + encodeURIComponent(expr));
+    const j = await r.json();
+    return j?.data?.result ?? [];
+  } catch { return null; }
+}
+async function scalar(expr) {
+  const res = await pq(expr);
+  if (!res?.length) return null;
+  const v = parseFloat(res[0]?.value?.[1]);
+  return isNaN(v) ? null : v;
+}
+
+function fmt(v, d=2) { return v === null ? '—' : v.toFixed(d); }
+
+function setCard(cid, vid, bk, raw, disp, state) {
+  const c = document.getElementById(cid);
+  document.getElementById(vid).textContent = disp;
+  c.className = 'mc' + (state === 'good' ? ' sg' : state === 'warn' ? ' sw' : state === 'crit' ? ' sc' : '');
+  push(bk, raw ?? 0);
+  spark('sp-' + bk, bk);
+}
+
+async function fetchModel() {
+  const res = await pq('topk(1, ai_active_model == 1)');
+  if (!res?.length) return;
+  const { model='unknown', provider='—', category='—' } = res[0]?.metric ?? {};
+  document.getElementById('mctname').textContent = model.toUpperCase();
+  document.getElementById('mctprov').textContent = provider;
+  document.getElementById('mctcat').textContent  = category.toUpperCase();
+}
+
+async function fetchRouting() {
+  const res = await pq('ai_model_switches_total');
+  const list = document.getElementById('rlist');
+  while (list.firstChild) list.removeChild(list.firstChild);
+
+  if (!res?.length) {
+    const em = document.createElement('div');
+    em.className = 'remp';
+    em.textContent = 'NO SWITCHES · DEFAULT ROUTING';
+    list.appendChild(em);
+    return 0;
+  }
+
+  let tot = 0;
+  for (const r of res) {
+    const v = Math.round(parseFloat(r.value[1]));
+    tot += v;
+    const { from_model='?', to_model='?', reason='?' } = r.metric;
+
+    const item = document.createElement('div');
+    item.className = 'ritem';
+
+    const arr = document.createElement('div');
+    arr.className = 'rarr';
+    const from = document.createElement('span'); from.className = 'rfrom'; from.textContent = from_model;
+    const chev = document.createElement('span'); chev.className = 'rchev'; chev.textContent = '→';
+    const to   = document.createElement('span'); to.className   = 'rto';   to.textContent   = to_model;
+    arr.append(from, chev, to);
+
+    const meta = document.createElement('div');
+    meta.className = 'rmeta';
+    const rsn = document.createElement('span'); rsn.className = 'rreason'; rsn.textContent = reason;
+    const cnt = document.createElement('span'); cnt.className = 'rcount';  cnt.textContent = '×' + v;
+    meta.append(rsn, cnt);
+
+    item.append(arr, meta);
+    list.appendChild(item);
+  }
+  return tot;
+}
+
+async function fetchSessions() {
+  try {
+    const txt = await (await fetch(EXP)).text();
+    const get = name => {
+      const m = txt.match(new RegExp('^' + name + '\\s+([\\d.e+\\-]+)', 'm'));
+      return m ? parseFloat(m[1]) : null;
+    };
+    const fk = v => v === null ? '—'
+      : v >= 1e6 ? (v/1e6).toFixed(2)+'M'
+      : v >= 1e3 ? (v/1e3).toFixed(1)+'K'
+      : Math.round(v).toString();
+
+    document.getElementById('cs-in').textContent    = fk(get('claude_total_input_tokens_all'));
+    document.getElementById('cs-out').textContent   = fk(get('claude_total_output_tokens_all'));
+    document.getElementById('cs-cache').textContent = fk(get('claude_total_cache_read_tokens_all'));
+    const cost = get('claude_total_cost_usd_all');
+    document.getElementById('cs-cost').textContent  = cost !== null ? '$' + cost.toFixed(4) : '—';
+    document.getElementById('cs-sess').textContent  = fk(get('claude_total_sessions_all'));
+  } catch {}
+}
+
+const SVCS = [
+  { row:'sv-prom',  pill:'pl-prom',  url:'http://localhost:9090/-/healthy' },
+  { row:'sv-graf',  pill:'pl-graf',  url:'http://localhost:3007/api/health' },
+  { row:'sv-loki',  pill:'pl-loki',  url:'http://localhost:3100/ready' },
+  { row:'sv-tempo', pill:'pl-tempo', url:'http://localhost:3200/ready' },
+  { row:'sv-app',   pill:'pl-app',   url:'http://localhost:8000/metrics' },
+  { row:'sv-exp',   pill:'pl-exp',   url:'http://localhost:8001/metrics' },
+  { row:'sv-otel',  pill:null,       url:'http://localhost:13133/' },
+];
+
+async function chk(url) {
+  try {
+    await fetch(url, { mode:'no-cors', signal: AbortSignal.timeout(2000) });
+    return true;
+  } catch { return false; }
+}
+
+async function refreshHealth() {
+  await Promise.all(SVCS.map(async ({ row, pill, url }) => {
+    const ok = await chk(url);
+    const cls = ok ? 'up' : 'dn';
+    const r = document.getElementById(row);
+    if (r) r.className = 'svr ' + cls;
+    if (pill) { const p = document.getElementById(pill); if (p) p.className = 'pill ' + cls; }
+  }));
+}
+
+async function refresh() {
+  try {
+    await fetchModel();
+    const [rps, errR, p95, cost, tokIn, tokOut] = await Promise.all([
+      scalar('sum(rate(ai_requests_total[5m]))'),
+      scalar('sum(rate(ai_errors_total[5m])) / sum(rate(ai_requests_total[5m]))'),
+      scalar('histogram_quantile(0.95, sum by (le) (rate(ai_latency_seconds_bucket[5m])))'),
+      scalar('sum(rate(ai_cost_usd_total[5m])) * 60'),
+      scalar('sum(rate(ai_tokens_input_total[5m]))'),
+      scalar('sum(rate(ai_tokens_output_total[5m]))'),
+    ]);
+    const errP = errR === null ? null : errR * 100;
+    const tok  = (tokIn ?? 0) + (tokOut ?? 0);
+
+    setCard('c-rps',  'v-rps',  'rps',  rps,   fmt(rps, 2),  rps > 0 ? 'good' : null);
+    setCard('c-err',  'v-err',  'err',  errP,  fmt(errP, 2), errP >= 3 ? 'crit' : errP >= 1 ? 'warn' : 'good');
+    setCard('c-lat',  'v-lat',  'lat',  p95,   fmt(p95, 3),  p95 >= 2 ? 'crit' : p95 >= 1.5 ? 'warn' : 'good');
+    setCard('c-cost', 'v-cost', 'cost', cost,  fmt(cost, 4), cost >= .1 ? 'crit' : cost >= .05 ? 'warn' : 'good');
+    setCard('c-tok',  'v-tok',  'tok',  tok,   fmt(tok, 0),  null);
+    setCard('c-in',   'v-in',   'in',   tokIn, fmt(tokIn ?? 0, 0), null);
+    setCard('c-out',  'v-out',  'out',  tokOut,fmt(tokOut ?? 0, 0),null);
+
+    const sw = await fetchRouting();
+    setCard('c-sw', 'v-sw', 'sw', sw, String(sw), sw > 0 ? 'warn' : null);
+
+    document.getElementById('ldot').className = 'ldot';
+    document.getElementById('ltxt').textContent = 'LIVE';
+    document.getElementById('cupd').textContent =
+      'UPD ' + new Date().toLocaleTimeString('en-GB', { hour12:false });
+  } catch {
+    document.getElementById('ldot').className = 'ldot dead';
+    document.getElementById('ltxt').textContent = 'OFFLINE';
+    document.getElementById('cupd').textContent = 'PROMETHEUS UNREACHABLE';
+  }
+}
+
+const T0 = Date.now();
+setInterval(() => {
+  document.getElementById('cclock').textContent =
+    new Date().toLocaleTimeString('en-GB', { hour12:false });
+  const s = Math.floor((Date.now() - T0) / 1000);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  document.getElementById('sys-up').textContent =
+    h ? h + 'h ' + m + 'm' : m ? m + 'm ' + sec + 's' : sec + 's';
+}, 1000);
+
+refresh();
+setInterval(refresh, TICK);
+fetchSessions();
+setInterval(fetchSessions, 30000);
+refreshHealth();
+setInterval(refreshHealth, 15000);
+</script>
+</body>
+</html>

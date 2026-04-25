@@ -1,0 +1,23 @@
+cooldown_seconds: 60
+
+models:
+  default:  claude-sonnet-4-6
+  fast:     claude-haiku-4-5
+  cheap:    codex-mini-latest
+  fallback: gpt-4o
+
+policies:
+  - name: high_errors
+    condition: "error_rate > 0.03"
+    action: fallback
+    priority: 1
+
+  - name: high_latency
+    condition: "p95_latency > 2.0"
+    action: fast
+    priority: 2
+
+  - name: high_cost
+    condition: "cost_per_min > 0.1"
+    action: cheap
+    priority: 3
