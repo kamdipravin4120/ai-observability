@@ -227,6 +227,7 @@ body::after {
     <div class="liveb"><div class="ldot" id="ldot"></div><span id="ltxt">LIVE</span></div>
     <div class="cclock" id="cclock">--:--:--</div>
     <div class="cupd" id="cupd">CONNECTING…</div>
+    <div class="cupd" id="prom-url" style="opacity:.5;font-size:7px"></div>
   </div>
 </div>
 
@@ -415,8 +416,9 @@ body::after {
 </div>
 
 <script>
-const PROM = 'http://localhost:9090/api/v1/query';
-const EXP  = 'http://localhost:8001/metrics';
+const _p   = new URLSearchParams(window.location.search);
+const PROM = (_p.get('prom') || 'http://localhost:9090').replace(/\/$/, '') + '/api/v1/query';
+const EXP  = (_p.get('exp')  || 'http://localhost:8001') .replace(/\/$/, '') + '/metrics';
 const TICK = 5000;
 const HIST = 60;
 const NS   = 'http://www.w3.org/2000/svg';
@@ -632,6 +634,8 @@ async function refresh() {
     document.getElementById('cupd').textContent = 'PROMETHEUS UNREACHABLE';
   }
 }
+
+document.getElementById('prom-url').textContent = 'PROM: ' + PROM.replace('/api/v1/query','');
 
 const T0 = Date.now();
 setInterval(() => {
