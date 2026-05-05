@@ -503,7 +503,12 @@ function setCard(cid, vid, bk, raw, disp, state) {
 
 async function fetchModel() {
   const res = await pq('topk(1, ai_active_model == 1)');
-  if (!res?.length) return;
+  if (!res?.length) {
+    document.getElementById('mctname').textContent = 'NO ACTIVE MODEL';
+    document.getElementById('mctprov').textContent = '—';
+    document.getElementById('mctcat').textContent  = '—';
+    return;
+  }
   const { model='unknown', provider='—', category='—' } = res[0]?.metric ?? {};
   document.getElementById('mctname').textContent = model.toUpperCase();
   document.getElementById('mctprov').textContent = provider;
@@ -632,6 +637,9 @@ async function refresh() {
     document.getElementById('ldot').className = 'ldot dead';
     document.getElementById('ltxt').textContent = 'OFFLINE';
     document.getElementById('cupd').textContent = 'PROMETHEUS UNREACHABLE';
+    document.getElementById('mctname').textContent = 'OFFLINE';
+    document.getElementById('mctprov').textContent = '—';
+    document.getElementById('mctcat').textContent  = '—';
   }
 }
 
