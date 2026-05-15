@@ -25,13 +25,13 @@ wait_for "http://localhost:9090/-/healthy" "Prometheus" 90
 # 3. Wait for Grafana
 wait_for "http://localhost:3007/api/health" "Grafana" 60
 
-# 4. Start ai_app.py if not already running on :8000
-if ! lsof -ti:8000 > /dev/null 2>&1; then
+# 4. Start ai_app.py if not already running on :8002
+if ! lsof -ti:8002 > /dev/null 2>&1; then
   echo "Starting ai_app.py..."
-  nohup python3 "${PROJ}/ai_app.py" > /tmp/ai_app.log 2>&1 &
-  wait_for "http://localhost:8000/metrics" "ai_app" 30
+  nohup /home/pk/.pyenv/versions/3.11.15/bin/python3.11 "${PROJ}/ai_app.py" > /tmp/ai_app.log 2>&1 &
+  wait_for "http://localhost:8002/metrics" "ai_app" 30
 else
-  echo "ai_app already running on :8000"
+  echo "ai_app already running on :8002"
 fi
 
 # 5. Start Claude session metrics exporter if not running on :8001

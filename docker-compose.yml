@@ -18,7 +18,8 @@ services:
       - "3007:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=10T$dreams
+      - GF_SECURITY_ADMIN_PASSWORD=10T$$dreams
+      - GF_SECURITY_ALLOW_EMBEDDING=true
     volumes:
       - grafana_data:/var/lib/grafana
     restart: always

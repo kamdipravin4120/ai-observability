@@ -127,8 +127,14 @@ body::after {
   font-size:8px;letter-spacing:2px;text-transform:uppercase}
 
 /* METRICS */
-.mwrap{padding:14px;display:grid;grid-template-columns:repeat(4,1fr);gap:9px;
-  flex-shrink:0;border-bottom:1px solid var(--bord)}
+.mwrap {
+  padding:14px;
+  display:grid;
+  grid-template-columns:repeat(5, 1fr);
+  gap:9px;
+  flex-shrink:0;
+  border-bottom:1px solid var(--bord);
+}
 .mc{background:var(--raise);border:1px solid var(--bord);padding:11px 13px 8px;
   position:relative;overflow:hidden;transition:border-color .3s,box-shadow .3s}
 .mc::before{content:'';position:absolute;top:0;left:0;width:9px;height:9px;
@@ -182,7 +188,7 @@ body::after {
 .hubtitle{font-size:8px;letter-spacing:4px;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
 .hubgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:8px}
 .dc{display:flex;flex-direction:column;gap:5px;padding:11px 13px;
-  border:1px solid var(--bord);background:var(--surf);text-decoration:none;
+  border:1px solid var(--bord);background:var(--surf);cursor:pointer;
   color:var(--text);position:relative;overflow:hidden;transition:all .22s}
 .dc::before{content:'';position:absolute;top:0;left:0;width:3px;bottom:0;
   background:var(--vi);opacity:.5;transition:all .22s}
@@ -197,6 +203,18 @@ body::after {
 .dc.p::before{background:var(--amber)}
 .dc.l::before{background:var(--teal)}
 .dc.t::before{background:#60a5fa}
+
+/* IFRAME VIEW */
+.ifview{position:fixed;inset:52px 0 0 0;background:var(--void);z-index:100;
+  display:none;flex-direction:column}
+.ifview.open{display:flex}
+.ifhead{height:40px;background:var(--deep);border-bottom:1px solid var(--bord);
+  display:flex;align-items:center;padding:0 20px;justify-content:space-between}
+.iftitle{font-size:12px;letter-spacing:2px;font-weight:700;color:var(--vi)}
+.ifclose{cursor:pointer;color:var(--muted);font-size:18px}
+.ifclose:hover{color:var(--red)}
+.iframe-wrap{flex:1;background:#fff}
+iframe{width:100%;height:100%;border:none}
 
 ::-webkit-scrollbar{width:3px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -242,7 +260,7 @@ body::after {
       <div class="svr" id="sv-graf"><span class="sind"></span><span class="snm">Grafana</span><span class="sport">:3007</span></div>
       <div class="svr" id="sv-loki"><span class="sind"></span><span class="snm">Loki</span><span class="sport">:3100</span></div>
       <div class="svr" id="sv-tempo"><span class="sind"></span><span class="snm">Tempo</span><span class="sport">:3200</span></div>
-      <div class="svr" id="sv-app"><span class="sind"></span><span class="snm">AI App</span><span class="sport">:8000</span></div>
+      <div class="svr" id="sv-app"><span class="sind"></span><span class="snm">AI App</span><span class="sport">:8002</span></div>
       <div class="svr" id="sv-exp"><span class="sind"></span><span class="snm">Claude Exporter</span><span class="sport">:8001</span></div>
       <div class="svr" id="sv-otel"><span class="sind"></span><span class="snm">OTel Collector</span><span class="sport">:4317</span></div>
     </div>
@@ -356,6 +374,19 @@ body::after {
         <div class="mcunit">total events</div>
         <svg class="mcsp" id="sp-sw" viewBox="0 0 120 26" preserveAspectRatio="none"></svg>
       </div>
+      <div class="mc" id="c-dbud">
+        <div class="mclbl">Daily Budget</div>
+        <div class="mcthr">$10.00 LIMIT</div>
+        <div class="mcval" id="v-dbud">—</div>
+        <div class="mcunit">USD consumed</div>
+        <svg class="mcsp" id="sp-dbud" viewBox="0 0 120 26" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="mc" id="c-dist">
+        <div class="mclbl">Distribution</div>
+        <div class="mcval" id="v-dist">—</div>
+        <div class="mcunit">active categories</div>
+        <svg class="mcsp" id="sp-dist" viewBox="0 0 120 26" preserveAspectRatio="none"></svg>
+      </div>
     </div>
   </div>
 
@@ -365,6 +396,18 @@ body::after {
       <div class="sbt" style="margin-bottom:11px">Routing Events</div>
       <div class="rlistwrap" id="rlist">
         <div class="remp">NO EVENTS YET</div>
+      </div>
+    </div>
+    <div class="sbs css-sec">
+      <div class="sbt">Governance (Tenants)</div>
+      <div id="gov-list">
+        <div class="remp">COLLECTING TENANT DATA…</div>
+      </div>
+    </div>
+    <div class="sbs css-sec">
+      <div class="sbt">RL Intelligence</div>
+      <div id="rl-list">
+        <div class="remp">COLLECTING DATA…</div>
       </div>
     </div>
     <div class="sbs css-sec">
@@ -382,50 +425,56 @@ body::after {
 <div class="hub">
   <div class="hubtitle">Dashboard Hub</div>
   <div class="hubgrid">
-    <a class="dc g" href="http://localhost:3007/d/ai-observability-v4" target="_blank" rel="noopener">
+    <div class="dc g" onclick="openIf('http://localhost:3007/d/ai-observability-v4?orgId=1&kiosk', 'AI Observability Dashboard')">
       <div class="dctype">Grafana</div>
       <div class="dcname">AI Observability</div>
       <div class="dcdesc">Metrics, errors, latency, cost, tokens by model</div>
       <div class="dcarr">↗</div>
-    </a>
-    <a class="dc g" href="http://localhost:3007" target="_blank" rel="noopener">
-      <div class="dctype">Grafana</div>
-      <div class="dcname">Claude Sessions</div>
-      <div class="dcdesc">Token usage, cache efficiency, session analytics</div>
-      <div class="dcarr">↗</div>
-    </a>
-    <a class="dc p" href="http://localhost:9090" target="_blank" rel="noopener">
+    </div>
+    <div class="dc p" onclick="openIf('http://localhost:9090/graph?g0.expr=sum(rate(ai_requests_total[5m]))&g0.tab=0&g0.range_input=1h', 'Prometheus Explorer')">
       <div class="dctype">Prometheus</div>
       <div class="dcname">Metrics Explorer</div>
-      <div class="dcdesc">Raw PromQL, targets, alert rules</div>
+      <div class="dcdesc">Default: Request Rate (5m)</div>
       <div class="dcarr">↗</div>
-    </a>
-    <a class="dc l" href="http://localhost:3007/explore?orgId=1" target="_blank" rel="noopener">
+    </div>
+    <div class="dc l" onclick="openIf('http://localhost:3007/explore?left=%5B%22now-1h%22%2C%22now%22%2C%22Loki%22%2C%7B%22expr%22%3A%22%7Bjob%3D%5C%22ai_app%5C%22%7D%22%7D%5D', 'Loki Log Explorer')">
       <div class="dctype">Loki · via Grafana</div>
       <div class="dcname">Log Explorer</div>
-      <div class="dcdesc">Structured AI app logs — select Loki in Explore</div>
+      <div class="dcdesc">Default: {job="ai_app"}</div>
       <div class="dcarr">↗</div>
-    </a>
-    <a class="dc t" href="http://localhost:3007/explore?orgId=1" target="_blank" rel="noopener">
+    </div>
+    <div class="dc t" onclick="openIf('http://localhost:3007/explore?left=%5B%22now-1h%22%2C%22now%22%2C%22Tempo%22%2C%7B%22queryType%22%3A%22traceql%22%7D%5D', 'Tempo Trace Explorer')">
       <div class="dctype">Tempo · via Grafana</div>
       <div class="dcname">Trace Explorer</div>
-      <div class="dcdesc">OpenTelemetry traces — select Tempo in Explore</div>
+      <div class="dcdesc">Default: Recent Traces</div>
       <div class="dcarr">↗</div>
-    </a>
+    </div>
+  </div>
+</div>
+
+<div class="ifview" id="ifview">
+  <div class="ifhead">
+    <div class="iftitle" id="iftitle">DASHBOARD</div>
+    <div class="ifclose" onclick="closeIf()">×</div>
+  </div>
+  <div class="iframe-wrap">
+    <iframe id="main-if" src="about:blank"></iframe>
   </div>
 </div>
 
 <script>
 const _p   = new URLSearchParams(window.location.search);
-const PROM = (_p.get('prom') || 'http://localhost:9090').replace(/\/$/, '') + '/api/v1/query';
-const EXP  = (_p.get('exp')  || 'http://localhost:8001') .replace(/\/$/, '') + '/metrics';
+const _host = window.location.hostname;
+const PROM = (_p.get('prom') || `http://${_host}:9090`).replace(/\/$/, '') + '/api/v1/query';
+const EXP  = (_p.get('exp')  || `http://${_host}:8001`) .replace(/\/$/, '') + '/metrics';
 const TICK = 5000;
 const HIST = 60;
 const NS   = 'http://www.w3.org/2000/svg';
 
 const COLORS = {
   rps:'#7c6ee0', err:'#ef4444', lat:'#f59e0b', cost:'#d946ef',
-  tok:'#22d3a4', in:'#60a5fa', out:'#a78bfa', sw:'#fb923c'
+  tok:'#22d3a4', in:'#60a5fa', out:'#a78bfa', sw:'#fb923c',
+  dbud:'#fbbf24', dist:'#d946ef'
 };
 const B = {};
 
@@ -582,7 +631,7 @@ const SVCS = [
   { row:'sv-graf',  pill:'pl-graf',  url:'http://localhost:3007/api/health' },
   { row:'sv-loki',  pill:'pl-loki',  url:'http://localhost:3100/ready' },
   { row:'sv-tempo', pill:'pl-tempo', url:'http://localhost:3200/ready' },
-  { row:'sv-app',   pill:'pl-app',   url:'http://localhost:8000/metrics' },
+  { row:'sv-app',   pill:'pl-app',   url:'http://localhost:8002/metrics' },
   { row:'sv-exp',   pill:'pl-exp',   url:'http://localhost:8001/metrics' },
   { row:'sv-otel',  pill:null,       url:'http://localhost:13133/' },
 ];
@@ -607,13 +656,15 @@ async function refreshHealth() {
 async function refresh() {
   try {
     await fetchModel();
-    const [rps, errR, p95, cost, tokIn, tokOut] = await Promise.all([
+    const [rps, errR, p95, cost, tokIn, tokOut, dCost, dWeight] = await Promise.all([
       scalar('sum(rate(ai_requests_total[5m]))'),
       scalar('sum(rate(ai_errors_total[5m])) / sum(rate(ai_requests_total[5m]))'),
       scalar('histogram_quantile(0.95, sum by (le) (rate(ai_latency_seconds_bucket[5m])))'),
       scalar('sum(rate(ai_cost_usd_total[5m])) * 60'),
       scalar('sum(rate(ai_tokens_input_total[5m]))'),
       scalar('sum(rate(ai_tokens_output_total[5m]))'),
+      scalar('ai_daily_cost_usd'),
+      pq('ai_traffic_weight > 0'),
     ]);
     const errP = errR === null ? null : errR * 100;
     const tok  = (tokIn ?? 0) + (tokOut ?? 0);
@@ -625,6 +676,38 @@ async function refresh() {
     setCard('c-tok',  'v-tok',  'tok',  tok,   fmt(tok, 0),  null);
     setCard('c-in',   'v-in',   'in',   tokIn, fmt(tokIn ?? 0, 0), null);
     setCard('c-out',  'v-out',  'out',  tokOut,fmt(tokOut ?? 0, 0),null);
+    setCard('c-dbud', 'v-dbud', 'dbud', dCost, (dCost !== null ? '$'+dCost.toFixed(3) : '—'), dCost >= 10 ? 'sc' : dCost >= 8 ? 'sw' : 'good');
+
+    const activeCats = dWeight ? dWeight.length : 0;
+    setCard('c-dist', 'v-dist', 'dist', activeCats, activeCats + ' CATS', activeCats > 1 ? 'sw' : 'good');
+
+    const rewards = await pq('ai_model_reward');
+    const rlList = document.getElementById('rl-list');
+    if (rewards && rewards.length) {
+      while (rlList.firstChild) rlList.removeChild(rlList.firstChild);
+      rewards.sort((a,b) => b.value[1] - a.value[1]).forEach(r => {
+        const row = document.createElement('div');
+        row.className = 'csrow';
+        const lbl = document.createElement('span'); lbl.className = 'cslbl'; lbl.textContent = r.metric.category.toUpperCase();
+        const val = document.createElement('span'); val.className = 'csval'; val.textContent = parseFloat(r.value[1]).toFixed(2);
+        row.append(lbl, val);
+        rlList.appendChild(row);
+      });
+    }
+
+    const tCosts = await pq('ai_tenant_cost_usd');
+    const govList = document.getElementById('gov-list');
+    if (tCosts && tCosts.length) {
+      while (govList.firstChild) govList.removeChild(govList.firstChild);
+      tCosts.sort((a,b) => b.value[1] - a.value[1]).forEach(r => {
+        const row = document.createElement('div');
+        row.className = 'csrow';
+        const lbl = document.createElement('span'); lbl.className = 'cslbl'; lbl.textContent = r.metric.tenant;
+        const val = document.createElement('span'); val.className = 'csval hi'; val.textContent = '$' + parseFloat(r.value[1]).toFixed(3);
+        row.append(lbl, val);
+        govList.appendChild(row);
+      });
+    }
 
     const sw = await fetchRouting();
     setCard('c-sw', 'v-sw', 'sw', sw, String(sw), sw > 0 ? 'warn' : null);
@@ -633,7 +716,8 @@ async function refresh() {
     document.getElementById('ltxt').textContent = 'LIVE';
     document.getElementById('cupd').textContent =
       'UPD ' + new Date().toLocaleTimeString('en-GB', { hour12:false });
-  } catch {
+  } catch (err) {
+    console.error("Refresh Error:", err);
     document.getElementById('ldot').className = 'ldot dead';
     document.getElementById('ltxt').textContent = 'OFFLINE';
     document.getElementById('cupd').textContent = 'PROMETHEUS UNREACHABLE';
@@ -661,6 +745,16 @@ fetchSessions();
 setInterval(fetchSessions, 30000);
 refreshHealth();
 setInterval(refreshHealth, 15000);
+
+function openIf(url, title) {
+  document.getElementById('iftitle').textContent = title.toUpperCase();
+  document.getElementById('main-if').src = url;
+  document.getElementById('ifview').classList.add('open');
+}
+function closeIf() {
+  document.getElementById('ifview').classList.remove('open');
+  document.getElementById('main-if').src = 'about:blank';
+}
 </script>
 </body>
 </html>

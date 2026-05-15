@@ -1,23 +1,41 @@
 cooldown_seconds: 60
+daily_budget_usd: 10.0
+
+optimizer:
+  enabled: true
+  epsilon: 0.15
+
+# Level 6: Semantic Governance
+semantic_overrides:
+  CRITICAL_CODE:
+    distribution: {default: 1.0}
+  GENERAL_CHAT:
+    distribution: {cheap: 1.0}
 
 models:
-  default:  claude-sonnet-4-6
-  fast:     claude-haiku-4-5
-  cheap:    codex-mini-latest
-  fallback: gpt-4o
+  default:   claude-sonnet-4-6
+  fast:      claude-haiku-4-5
+  cheap:     codex-mini-latest
+  fallback:  gpt-4o
+  emergency: codex-mini-latest
 
 policies:
+  - name: predictive_burn_rate
+    condition: "burn_rate > 0.10"
+    distribution:
+      cheap: 0.8
+      default: 0.2
+    priority: 0  # Highest priority after budget
+
   - name: high_errors
     condition: "error_rate > 0.03"
-    action: fallback
+    distribution:
+      fallback: 1.0
     priority: 1
 
   - name: high_latency
     condition: "p95_latency > 2.0"
-    action: fast
+    distribution:
+      fast: 0.3
+      default: 0.7
     priority: 2
-
-  - name: high_cost
-    condition: "cost_per_min > 0.1"
-    action: cheap
-    priority: 3
